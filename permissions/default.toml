@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-toggle-capture-visibility"
+description = "Permite alternar la visibilidad de captura de la ventana principal."
+commands.allow = ["toggle_capture_visibility"]
