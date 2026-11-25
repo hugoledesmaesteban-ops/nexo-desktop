@@ -1,0 +1,10 @@
+node_modules/
+dist/
+src-tauri/target/
+*.log
+.DS_Store
+node_modules/
+dist/
+target/
+nexo.key
+nexo.key.pub
