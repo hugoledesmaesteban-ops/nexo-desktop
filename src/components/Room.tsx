@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { roomService } from "../services/room";
 import { voice, type VoiceConnection } from "../services/webrtc";
 import { ChatPanel } from "./ChatPanel";
@@ -27,6 +27,8 @@ function connectionLabel(connection: VoiceConnection): string {
   }
 }
 
+type RoomTab = "screen" | "chat";
+
 export function Room({ onDisconnect, onOpenSettings }: RoomProps) {
   const room = useSyncExternalStore(
     roomService.subscribe,
@@ -34,6 +36,7 @@ export function Room({ onDisconnect, onOpenSettings }: RoomProps) {
   );
   const call = useSyncExternalStore(voice.subscribe, voice.getSnapshot);
   const connected = call.connection === "connected";
+  const [activeTab, setActiveTab] = useState<RoomTab>("screen");
 
   return (
     <div className="room-layout">
@@ -94,8 +97,28 @@ export function Room({ onDisconnect, onOpenSettings }: RoomProps) {
       </section>
 
       <div className="room-main">
-        <ScreenShare />
-        <ChatPanel />
+        <div className="room-tabs">
+          <button
+            type="button"
+            className={`room-tab ${activeTab === "screen" ? "room-tab--active" : ""}`}
+            aria-pressed={activeTab === "screen"}
+            onClick={() => setActiveTab("screen")}
+          >
+            🖥 Pantalla
+          </button>
+          <button
+            type="button"
+            className={`room-tab ${activeTab === "chat" ? "room-tab--active" : ""}`}
+            aria-pressed={activeTab === "chat"}
+            onClick={() => setActiveTab("chat")}
+          >
+            💬 Chat
+          </button>
+        </div>
+
+        <div className="room-tab-panel">
+          {activeTab === "screen" ? <ScreenShare /> : <ChatPanel />}
+        </div>
       </div>
     </div>
   );

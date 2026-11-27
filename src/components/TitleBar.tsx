@@ -13,7 +13,10 @@ export function TitleBar() {
           type="button"
           className="titlebar__button"
           aria-label="Minimizar"
-          onClick={() => void minimizeWindow()}
+          onClick={(event) => {
+            event.stopPropagation();
+            void minimizeWindow();
+          }}
         >
           <span className="titlebar__minimize" />
         </button>
@@ -21,7 +24,10 @@ export function TitleBar() {
           type="button"
           className="titlebar__button titlebar__button--close"
           aria-label="Ocultar en la bandeja"
-          onClick={() => void hideWindow()}
+          onClick={(event) => {
+            event.stopPropagation();
+            void hideWindow();
+          }}
         >
           <span className="titlebar__close" />
         </button>

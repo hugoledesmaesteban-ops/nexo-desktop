@@ -6,6 +6,9 @@
   "permissions": [
     "core:default",
     "updater:default",
-    "allow-toggle-capture-visibility"
+    "allow-toggle-capture-visibility",
+    "allow-hide-window",
+    "allow-minimize-window",
+    "allow-get-state"
   ]
 }

@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Permisos de la ventana principal","local":true,"windows":["main"],"permissions":["core:default","updater:default","allow-toggle-capture-visibility"]}}
+{"default":{"identifier":"default","description":"Permisos de la ventana principal","local":true,"windows":["main"],"permissions":["core:default","updater:default","allow-toggle-capture-visibility","allow-hide-window","allow-minimize-window","allow-get-state"]}}

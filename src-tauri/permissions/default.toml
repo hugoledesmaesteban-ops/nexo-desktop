@@ -2,3 +2,18 @@
 identifier = "allow-toggle-capture-visibility"
 description = "Permite alternar la visibilidad de captura de la ventana principal."
 commands.allow = ["toggle_capture_visibility"]
+
+[[permission]]
+identifier = "allow-hide-window"
+description = "Permite ocultar la ventana principal."
+commands.allow = ["hide_window"]
+
+[[permission]]
+identifier = "allow-minimize-window"
+description = "Permite minimizar la ventana principal."
+commands.allow = ["minimize_window"]
+
+[[permission]]
+identifier = "allow-get-state"
+description = "Permite leer el estado de la aplicación."
+commands.allow = ["get_state"]

@@ -25,9 +25,17 @@ export interface ChatSnapshot {
 
 interface ChatPayload {
   type: "chat";
+  id: string;
   text: string;
   sentAt: number;
 }
+
+interface DeletePayload {
+  type: "delete";
+  id: string;
+}
+
+type ChatWirePayload = ChatPayload | DeletePayload;
 
 const INITIAL_CHAT: ChatSnapshot = {
   messages: [],
@@ -38,7 +46,6 @@ const INITIAL_CHAT: ChatSnapshot = {
 
 const MAX_MESSAGES_IN_MEMORY = 100;
 const MAX_TIMESTAMP = 8_640_000_000_000_000;
-let nextMessageId = 0;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -61,7 +68,11 @@ function isValidSentAt(value: unknown): value is number {
   );
 }
 
-function parsePayload(raw: string): ChatPayload | null {
+function isValidId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= 64;
+}
+
+function parsePayload(raw: string): ChatWirePayload | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -69,9 +80,24 @@ function parsePayload(raw: string): ChatPayload | null {
     return null;
   }
   if (!isRecord(parsed)) return null;
+  if (parsed.type === "delete") {
+    if (!isValidId(parsed.id)) return null;
+    return { type: "delete", id: parsed.id };
+  }
   if (parsed.type !== "chat") return null;
-  if (!isValidText(parsed.text) || !isValidSentAt(parsed.sentAt)) return null;
-  return { type: "chat", text: parsed.text, sentAt: parsed.sentAt };
+  if (
+    !isValidId(parsed.id) ||
+    !isValidText(parsed.text) ||
+    !isValidSentAt(parsed.sentAt)
+  ) {
+    return null;
+  }
+  return {
+    type: "chat",
+    id: parsed.id,
+    text: parsed.text,
+    sentAt: parsed.sentAt,
+  };
 }
 
 class ChatService {
@@ -123,11 +149,44 @@ class ChatService {
       return;
     }
 
+    const id = crypto.randomUUID();
     const sentAt = Date.now();
-    const payload: ChatPayload = { type: "chat", text, sentAt };
+    const payload: ChatPayload = { type: "chat", id, text, sentAt };
+    const encoded = JSON.stringify(payload);
 
-    if (this.dataChannelOpen && voice.sendChatData(JSON.stringify(payload))) {
-      this.appendMessage({ text, own: true, sentAt, transport: "datachannel" });
+    if (this.dataChannelOpen && voice.sendChatData(encoded)) {
+      this.appendMessage({ id, text, own: true, sentAt, transport: "datachannel" });
+      this.setState({ error: null });
+      return;
+    }
+
+    if (this.dataChannelOpen) {
+      this.dataChannelOpen = false;
+      this.refresh();
+    }
+
+    if (new TextEncoder().encode(encoded).length > CHAT_MAX_CHARS) {
+      this.setState({ error: "El mensaje supera el límite del canal WebSocket." });
+      return;
+    }
+
+    try {
+      roomService.sendChat(encoded);
+      this.appendMessage({ id, text, own: true, sentAt, transport: "websocket" });
+      this.setState({ error: null });
+    } catch (error) {
+      this.setState({
+        error: describeError(error, "No se pudo enviar el mensaje."),
+      });
+    }
+  };
+
+  deleteMessage = (id: string): void => {
+    this.removeMessage(id);
+    const payload: DeletePayload = { type: "delete", id };
+    const encoded = JSON.stringify(payload);
+
+    if (this.dataChannelOpen && voice.sendChatData(encoded)) {
       this.setState({ error: null });
       return;
     }
@@ -138,12 +197,11 @@ class ChatService {
     }
 
     try {
-      roomService.sendChat(text);
-      this.appendMessage({ text, own: true, sentAt, transport: "websocket" });
+      roomService.sendChat(encoded);
       this.setState({ error: null });
     } catch (error) {
       this.setState({
-        error: describeError(error, "No se pudo enviar el mensaje."),
+        error: describeError(error, "No se pudo eliminar el mensaje."),
       });
     }
   };
@@ -157,14 +215,31 @@ class ChatService {
       case "peer-left":
         this.refresh();
         break;
-      case "chat":
+      case "chat": {
+        const payload = parsePayload(event.text);
+        if (payload?.type === "delete") {
+          this.removeMessage(payload.id);
+          break;
+        }
+        if (payload?.type === "chat") {
+          this.appendMessage({
+            id: payload.id,
+            text: payload.text,
+            own: false,
+            sentAt: payload.sentAt,
+            transport: "websocket",
+          });
+          break;
+        }
         this.appendMessage({
+          id: crypto.randomUUID(),
           text: event.text,
           own: false,
           sentAt: event.sentAt,
           transport: "websocket",
         });
         break;
+      }
       case "reset":
         this.reset();
         break;
@@ -193,7 +268,12 @@ class ChatService {
     if (typeof event.data !== "string") return;
     const payload = parsePayload(event.data);
     if (!payload) return;
+    if (payload.type === "delete") {
+      this.removeMessage(payload.id);
+      return;
+    }
     this.appendMessage({
+      id: payload.id,
       text: payload.text,
       own: false,
       sentAt: payload.sentAt,
@@ -228,10 +308,15 @@ class ChatService {
     this.refresh();
   }
 
-  private appendMessage(message: Omit<ChatMessage, "id">): void {
-    const next: ChatMessage = { id: `chat-${++nextMessageId}`, ...message };
+  private appendMessage(message: ChatMessage): void {
     this.setState({
-      messages: [...this.state.messages, next].slice(-MAX_MESSAGES_IN_MEMORY),
+      messages: [...this.state.messages, message].slice(-MAX_MESSAGES_IN_MEMORY),
+    });
+  }
+
+  private removeMessage(id: string): void {
+    this.setState({
+      messages: this.state.messages.filter((message) => message.id !== id),
     });
   }
 

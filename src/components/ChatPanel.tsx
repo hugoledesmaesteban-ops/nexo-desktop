@@ -70,9 +70,20 @@ export function ChatPanel() {
             >
               <div className="chat-message__meta">
                 <span>{message.own ? "Vos" : "Peer"}</span>
-                <time dateTime={new Date(message.sentAt).toISOString()}>
-                  {formatTime(message.sentAt)}
-                </time>
+                <div className="chat-message__meta-right">
+                  <time dateTime={new Date(message.sentAt).toISOString()}>
+                    {formatTime(message.sentAt)}
+                  </time>
+                  <button
+                    type="button"
+                    className="chat-message__delete"
+                    aria-label="Eliminar mensaje"
+                    title="Eliminar mensaje"
+                    onClick={() => chat.deleteMessage(message.id)}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
               <p className="chat-message__text">{message.text}</p>
               <span className="chat-message__transport">

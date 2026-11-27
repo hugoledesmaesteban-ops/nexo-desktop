@@ -177,6 +177,24 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Permite leer el estado de la aplicación.",
+          "type": "string",
+          "const": "allow-get-state",
+          "markdownDescription": "Permite leer el estado de la aplicación."
+        },
+        {
+          "description": "Permite ocultar la ventana principal.",
+          "type": "string",
+          "const": "allow-hide-window",
+          "markdownDescription": "Permite ocultar la ventana principal."
+        },
+        {
+          "description": "Permite minimizar la ventana principal.",
+          "type": "string",
+          "const": "allow-minimize-window",
+          "markdownDescription": "Permite minimizar la ventana principal."
+        },
+        {
           "description": "Permite alternar la visibilidad de captura de la ventana principal.",
           "type": "string",
           "const": "allow-toggle-capture-visibility",
